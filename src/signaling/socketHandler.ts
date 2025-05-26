@@ -324,6 +324,32 @@ export default (io: Server) => {
         }
       }
     }
+
+    // Handle request for a new offer (recovery mechanism)
+    socket.on("request-new-offer", (data: any) => {
+      const { roomId, to } = data;
+      console.log(`Socket ${socket.id} is requesting a new offer from ${to} in room ${roomId}`);
+      
+      // Get active room
+      const room = socketData.rooms[roomId];
+      if (!room) {
+        console.warn(`Room ${roomId} not found for request-new-offer event`);
+        return;
+      }
+      
+      // Forward the request to the target socket
+      const targetSocket = io.sockets.sockets.get(to);
+      if (targetSocket) {
+        console.info(`Forwarding request-new-offer from ${socket.id} to ${to}`);
+        targetSocket.emit("request-new-offer", {
+          roomId,
+          from: socket.id,
+          recovery: true
+        });
+      } else {
+        console.warn(`Target socket ${to} not found for request-new-offer`);
+      }
+    });
   });
 
   // Add monitoring interval to check for orphaned rooms/connections
